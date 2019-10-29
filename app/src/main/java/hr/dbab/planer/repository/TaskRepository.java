@@ -1,4 +1,4 @@
-package hr.dbab.planer;
+package hr.dbab.planer.repository;
 
 import android.app.Application;
 import android.os.AsyncTask;
@@ -6,6 +6,10 @@ import android.os.AsyncTask;
 import androidx.lifecycle.LiveData;
 
 import java.util.List;
+
+import hr.dbab.planer.model.TaskDao;
+import hr.dbab.planer.model.TaskDatabase;
+import hr.dbab.planer.model.Task;
 
 public class TaskRepository {
     //member varijable

@@ -1,4 +1,4 @@
-package hr.dbab.planer;
+package hr.dbab.planer.model;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;

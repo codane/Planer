@@ -1,4 +1,4 @@
-package hr.dbab.planer;
+package hr.dbab.planer.viewmodel;
 
 import android.app.Application;
 
@@ -8,9 +8,19 @@ import androidx.lifecycle.LiveData;
 
 import java.util.List;
 
+import hr.dbab.planer.model.Task;
+import hr.dbab.planer.repository.TaskRepository;
+
 public class TaskViewModel extends AndroidViewModel {//kreiranje member varijabli
     private TaskRepository repository;
     private LiveData<List<Task>> allTasks;
+
+    public int totalTasks;
+    public int id;
+    public String title;
+    public String description;
+    public String time;
+    public String tags;
 
     public TaskViewModel(@NonNull Application application) {
         super(application);

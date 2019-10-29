@@ -1,16 +1,17 @@
-package hr.dbab.planer;
-
+package hr.dbab.planer.view;
 
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Toast;
+import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -21,53 +22,72 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+import hr.dbab.planer.R;
+import hr.dbab.planer.adapter.TaskAdapter;
+import hr.dbab.planer.model.Task;
+import hr.dbab.planer.viewmodel.TaskViewModel;
 
-    public static final int ADD_TASK_REQUEST = 1;
-    public static final int EDIT_TASK_REQUEST = 2;
-    private TaskViewModel taskViewModel;
+
+public class MainFragment extends Fragment {
+    //deklariranje varijabli
     private FloatingActionButton fab;
+    private TaskViewModel taskViewModel;
     private RecyclerView recyclerView;
     private TaskAdapter adapter = new TaskAdapter();
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        initWidgets();
-        setupListeners();
-
-        taskViewModel = ViewModelProviders.of(this).get(TaskViewModel.class);
-        taskViewModel.getAllTasks().observe(this, new Observer<List<Task>>() {
-            @Override
-            public void onChanged(List<Task> tasks) {
-                //ažuriramo RecyclerView
-                adapter.setTasks(tasks);
-
-            }
-        });
+    //konstruktor
+    public MainFragment() {
     }
-    public void initWidgets(){
-        fab = findViewById(R.id.fab_add_task);
-        recyclerView = findViewById(R.id.recycler_view);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // postavljanje sučelja za ovaj fragment
+        View v = inflater.inflate(R.layout.fragment_main, container, false);
+        //inicijaliziranje varijabli
+        fab = v.findViewById(R.id.fab_add_task);
+        recyclerView = v.findViewById(R.id.recycler_view);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         recyclerView.setHasFixedSize(true);
 
         adapter = new TaskAdapter();
         recyclerView.setAdapter(adapter);
+
+        return v;
     }
 
-    public void setupListeners(){
-        fab.setOnClickListener(new View.OnClickListener() {
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+        taskViewModel = ViewModelProviders.of(getActivity()).get(TaskViewModel.class);
+        taskViewModel.getAllTasks().observe(this, new Observer<List<Task>>() {
             @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, AddEditTaskActivity.class);
-                int totalTasks = adapter.getItemCount();
-                intent.putExtra("totalTasks", totalTasks);
-                startActivityForResult(intent, ADD_TASK_REQUEST);
+            public void onChanged(List<Task> tasks) {
+                adapter.setTasks(tasks);
+                //spremanje ukupnog broja obveza u varijablu
+                taskViewModel.totalTasks = adapter.getItemCount();
             }
         });
 
+        //klikom na FAB varijable postavljamo na prazno i mijenjamo fragment
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                taskViewModel.id = -1;
+                taskViewModel.title = "";
+                taskViewModel.description = "";
+                taskViewModel.time = "";
+                taskViewModel.tags = "";
+                //pozivanje metode kojom se zamjenjuje fragment
+                changeFragment();
+            }
+        });
+        //kreiranje swipe funkcionalnosti
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
             public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
@@ -84,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
                         adapter.moveItemLeft(viewHolder.getAdapterPosition(), viewHolder.getAdapterPosition() - 1);
                     }
                 }
-
                 if (direction == ItemTouchHelper.RIGHT) {
                     //ako je posljednja pozicija u listi, onda ostaje na istoj poziciji
                     if (viewHolder.getAdapterPosition() < (adapter.getItemCount() - 1)) {
@@ -96,25 +115,27 @@ public class MainActivity extends AppCompatActivity {
             }
         }).attachToRecyclerView(recyclerView);
 
+        //koristimo custom sučelje kojim u varijable spremamo podatke o obvezi na koju je kliknuto, te potom mijenjamo fragment
         adapter.setCustomOnItemClickListener(new TaskAdapter.CustomOnItemClickListener() {
             @Override
             public void customOnItemClick(Task task) {
-                //šaljemo podatke o unesenoj obvezi
-                Intent intent = new Intent(MainActivity.this, AddEditTaskActivity.class);
-                intent.putExtra(AddEditTaskActivity.EXTRA_ID, task.getId());
-                intent.putExtra(AddEditTaskActivity.EXTRA_TITLE, task.getTitle());
-                intent.putExtra(AddEditTaskActivity.EXTRA_DESCRIPTION, task.getDescription());
-                intent.putExtra(AddEditTaskActivity.EXTRA_TIME, task.getTime());
-                intent.putExtra(AddEditTaskActivity.EXTRA_TAGS, task.getTag());
+                //dohvaćamo i spremamo podatke o unesenoj obvezi u varijable u TaskViewModel klasi
+                taskViewModel.id = task.getId();
+                taskViewModel.title = task.getTitle();
+                taskViewModel.description = task.getDescription();
+                taskViewModel.time = task.getTime();
+                taskViewModel.tags = task.getTag();
 
-                startActivityForResult(intent, EDIT_TASK_REQUEST);
+                //pozivanje metode kojom se zamjenjuje fragment
+                changeFragment();
             }
         });
 
+        //dugim klikom otvara se dijalog kojim se može obrisati trenutna obveza
         adapter.setCustomLongOnItemClickListener(new TaskAdapter.CustomLongOnItemClickListener() {
             @Override
             public void customLongOnItemClickListener(final Task task) {
-                new AlertDialog.Builder(MainActivity.this)
+                new AlertDialog.Builder(getActivity())
                         .setIcon(android.R.drawable.ic_dialog_alert)
                         .setTitle("Brisanje")
                         .setMessage("Jeste li sigurni da želite obrisati?")
@@ -128,42 +149,14 @@ public class MainActivity extends AppCompatActivity {
                         .show();
             }
         });
-
     }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == ADD_TASK_REQUEST && resultCode == RESULT_OK) {
-            String title = data.getStringExtra(AddEditTaskActivity.EXTRA_TITLE);
-            String desription = data.getStringExtra(AddEditTaskActivity.EXTRA_DESCRIPTION);
-            String time = data.getStringExtra(AddEditTaskActivity.EXTRA_TIME);
-            String tags = data.getStringExtra(AddEditTaskActivity.EXTRA_TAGS);
-
-            Task task = new Task(title, desription, time, tags);
-            taskViewModel.insert(task);
-
-            Toast.makeText(this, "Obveza spremljena", Toast.LENGTH_SHORT).show();
-
-        } else if (requestCode == EDIT_TASK_REQUEST && resultCode == RESULT_OK) {
-            int id = data.getIntExtra(AddEditTaskActivity.EXTRA_ID, -1);
-            if (id == -1) {
-                //ne može se ažurirati jer je id invalid
-                Toast.makeText(this, "Obveza se ne može ažurirati", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            String title = data.getStringExtra(AddEditTaskActivity.EXTRA_TITLE);
-            String desription = data.getStringExtra(AddEditTaskActivity.EXTRA_DESCRIPTION);
-            String time = data.getStringExtra(AddEditTaskActivity.EXTRA_TIME);
-            String tags = data.getStringExtra(AddEditTaskActivity.EXTRA_TAGS);
-
-            Task task = new Task(title, desription, time, tags);
-            task.setId(id);
-            taskViewModel.update(task);
-            Toast.makeText(this, "Obveza ažurirana", Toast.LENGTH_SHORT).show();
-        }
+    //metoda za zamijenu fragmenata
+    private void changeFragment(){
+        Fragment changeFragment = new AddEditFragment();
+        FragmentManager fm = getFragmentManager();
+        FragmentTransaction ft = fm.beginTransaction();
+        ft.replace(R.id.fragment_container, changeFragment)
+                .addToBackStack(null)
+                .commit();
     }
-
 }
-

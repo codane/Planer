@@ -1,15 +1,18 @@
-package hr.dbab.planer;
+package hr.dbab.planer.adapter;
 
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import hr.dbab.planer.view.CustomView;
+import hr.dbab.planer.model.Task;
+
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskHolder> {
 
@@ -20,15 +23,16 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskHolder> {
     @NonNull
     @Override
     public TaskHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.task_item, parent, false);
+        ViewGroup.LayoutParams params = new RecyclerView.LayoutParams(MATCH_PARENT, 150);
+        CustomView view = new CustomView(parent.getContext());
+        view.setLayoutParams(params);
         return new TaskHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull TaskHolder holder, int position) {
         Task currentTask = tasks.get(position);
-        holder.tvTitle.setText(currentTask.getTitle());
-        holder.tvTime.setText(currentTask.getTime());
+        holder.customView.setTitleTime(currentTask);
 
     }
     @Override
@@ -59,15 +63,14 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskHolder> {
     }
 
     class TaskHolder extends RecyclerView.ViewHolder {
-        private TextView tvTitle;
-        private TextView tvTime;
+        public final CustomView customView;
 
 
-        public TaskHolder(@NonNull View itemView) {
+        public TaskHolder(@NonNull CustomView itemView) {
             super(itemView);
 
-            tvTitle = itemView.findViewById(R.id.tv_title);
-            tvTime = itemView.findViewById(R.id.tv_time);
+            this.customView = itemView;
+
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
